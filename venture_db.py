@@ -13,6 +13,10 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DB_PATH = Path(os.environ.get("VENTURE_DB", DATA_DIR / "venture.sqlite3"))
 
+def offer_config() -> dict:
+    try: return json.loads((ROOT / "config" / "venture.json").read_text())
+    except (OSError, json.JSONDecodeError): return {}
+
 MILESTONES = [
     "INSPECTION", "ARCHITECTURE", "QUEUE", "AGENTS", "DASHBOARD", "SECURITY",
     "RESEARCH", "PRODUCT", "QA", "PUBLICATION", "DISTRIBUTION", "SALES",
@@ -87,12 +91,26 @@ def init_db() -> None:
           quoted_amount_usd REAL NOT NULL, payment_status TEXT NOT NULL, order_status TEXT NOT NULL,
           profile_url TEXT NOT NULL DEFAULT '', buyer_contact TEXT NOT NULL DEFAULT '',
           delivery_status TEXT NOT NULL DEFAULT 'NOT_STARTED', is_sandbox INTEGER NOT NULL DEFAULT 0,
-          created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+          customer_email TEXT NOT NULL DEFAULT '', target_audience TEXT NOT NULL DEFAULT '',
+          preferred_tone TEXT NOT NULL DEFAULT '', additional_context TEXT NOT NULL DEFAULT '',
+          consent_scope TEXT NOT NULL DEFAULT '', payment_reference TEXT NOT NULL DEFAULT '',
+          delivery_path TEXT NOT NULL DEFAULT '', purchased_version TEXT NOT NULL DEFAULT '',
+          qa_evidence_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS publications (
           id TEXT PRIMARY KEY, channel TEXT NOT NULL, url TEXT NOT NULL, content TEXT NOT NULL,
           approval_status TEXT NOT NULL, risk_level TEXT NOT NULL, published_at TEXT,
           rollback_ref TEXT NOT NULL DEFAULT ''
+        );
+        CREATE TABLE IF NOT EXISTS publication_checks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, publication_id TEXT NOT NULL, checked_at TEXT NOT NULL,
+          url TEXT NOT NULL, http_status INTEGER NOT NULL, content_hash TEXT NOT NULL DEFAULT '',
+          result TEXT NOT NULL, details_json TEXT NOT NULL DEFAULT '{}'
+        );
+        CREATE TABLE IF NOT EXISTS distribution_metrics (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, channel TEXT NOT NULL, source TEXT NOT NULL,
+          recorded_at TEXT NOT NULL, impressions INTEGER, visits INTEGER, clicks INTEGER,
+          inquiries INTEGER, notes TEXT NOT NULL DEFAULT ''
         );
         CREATE TABLE IF NOT EXISTS events (
           id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, event_type TEXT NOT NULL,
@@ -109,8 +127,21 @@ def init_db() -> None:
         );
         """)
         order_columns = {row[1] for row in c.execute("PRAGMA table_info(orders)")}
-        if "is_sandbox" not in order_columns:
-            c.execute("ALTER TABLE orders ADD COLUMN is_sandbox INTEGER NOT NULL DEFAULT 0")
+        for column, definition in {
+            "is_sandbox": "INTEGER NOT NULL DEFAULT 0",
+            "customer_email": "TEXT NOT NULL DEFAULT ''",
+            "target_audience": "TEXT NOT NULL DEFAULT ''",
+            "preferred_tone": "TEXT NOT NULL DEFAULT ''",
+            "additional_context": "TEXT NOT NULL DEFAULT ''",
+            "consent_scope": "TEXT NOT NULL DEFAULT ''",
+            "payment_reference": "TEXT NOT NULL DEFAULT ''",
+            "delivery_path": "TEXT NOT NULL DEFAULT ''",
+            "delivery_token": "TEXT NOT NULL DEFAULT ''",
+            "purchased_version": "TEXT NOT NULL DEFAULT ''",
+            "qa_evidence_json": "TEXT NOT NULL DEFAULT '[]'",
+        }.items():
+            if column not in order_columns:
+                c.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")
         agent_columns = {row[1] for row in c.execute("PRAGMA table_info(agents)")}
         for column, definition in {
             "blocking_reason": "TEXT NOT NULL DEFAULT ''",
@@ -239,24 +270,47 @@ def transition_task(task_id: str, status: str, result: dict | None = None, verif
         c.execute("UPDATE tasks SET status=?,result_json=?,verification_status=?,updated_at=? WHERE id=?", (status,json.dumps(result or {}),verification,now(),task_id))
         log_event(c, "TASK_TRANSITION", task["assigned_agent"], "task", task_id, status, "medium" if status in {"PUBLISHED","PAID"} else "low", {"verification": verification})
 
-def create_order(product_id: str, customer_id: str, amount: float, profile_url: str = "", buyer_contact: str = "", is_sandbox: bool = False) -> str:
+def create_order(product_id: str, customer_id: str, amount: float, profile_url: str = "", buyer_contact: str = "", is_sandbox: bool = False, customer_email: str = "", target_audience: str = "", preferred_tone: str = "", additional_context: str = "", consent_scope: str = "", purchased_version: str = "") -> str:
     if amount <= 0: raise ValueError("amount must be positive")
     oid = "ord_" + uuid.uuid4().hex[:12]
     with connect() as c:
-        c.execute("INSERT INTO orders(id,anonymous_customer_id,product_id,quoted_amount_usd,payment_status,order_status,profile_url,buyer_contact,is_sandbox,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (oid,customer_id,product_id,amount,"UNVERIFIED","AWAITING_PAYMENT",profile_url,buyer_contact,int(is_sandbox),now(),now()))
-        log_event(c, "ORDER_CREATED", "sales", "order", oid, "AWAITING_PAYMENT", "medium", {"amount_usd": amount})
+        if not consent_scope: raise ValueError("consent and scope acknowledgement is required")
+        c.execute("INSERT INTO orders(id,anonymous_customer_id,product_id,quoted_amount_usd,payment_status,order_status,profile_url,buyer_contact,is_sandbox,customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (oid,customer_id,product_id,amount,"UNVERIFIED","AWAITING_PAYMENT",profile_url,buyer_contact,int(is_sandbox),customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,now(),now()))
+        log_event(c, "ORDER_CREATED", "sales", "order", oid, "AWAITING_PAYMENT", "medium", {"amount_usd": amount, "is_sandbox": is_sandbox})
     return oid
 
-def confirm_payment(order_id: str, confirmed: bool, actor: str = "owner") -> None:
+def confirm_payment(order_id: str, confirmed: bool, paypal_reference: str = "", actor: str = "owner") -> None:
     with connect() as c:
         state = guarded_state(c)
         if state["emergency_stop"]: raise PermissionError("emergency stop is active")
         order = c.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
         if order is None: raise KeyError(order_id)
+        if confirmed and not paypal_reference.strip(): raise ValueError("PayPal reference is required for a PAID transition")
         payment = "PAID" if confirmed else "NOT_PAID"
         status = "PAID" if confirmed else "AWAITING_PAYMENT"
-        c.execute("UPDATE orders SET payment_status=?,order_status=?,updated_at=? WHERE id=?", (payment,status,now(),order_id))
-        log_event(c, "PAYMENT_CONFIRMED" if confirmed else "PAYMENT_NOT_CONFIRMED", actor, "order", order_id, payment, "high", {"owner_confirmed": True})
+        c.execute("UPDATE orders SET payment_status=?,order_status=?,payment_reference=?,updated_at=? WHERE id=?", (payment,status,paypal_reference.strip() if confirmed else "",now(),order_id))
+        log_event(c, "PAYMENT_CONFIRMED" if confirmed else "PAYMENT_NOT_CONFIRMED", actor, "order", order_id, payment, "high", {"owner_confirmed": True, "paypal_reference_present": bool(paypal_reference.strip())})
+
+def record_publication(channel: str, url: str, content: str, approval_status: str = "AUTO_APPROVED", risk_level: str = "low", published_at: str | None = None, rollback_ref: str = "") -> str:
+    publication_id = "pub_" + uuid.uuid4().hex[:12]
+    with connect() as c:
+        c.execute("INSERT INTO publications(id,channel,url,content,approval_status,risk_level,published_at,rollback_ref) VALUES(?,?,?,?,?,?,?,?)", (publication_id,channel,url,content,approval_status,risk_level,published_at or now(),rollback_ref))
+        log_event(c, "PUBLICATION_RECORDED", "publishing", "publication", publication_id, "ok", risk_level, {"url": url, "channel": channel})
+    return publication_id
+
+def record_publication_check(publication_id: str, url: str, http_status: int, content_hash: str, result: str, details: dict | None = None) -> None:
+    with connect() as c:
+        c.execute("INSERT INTO publication_checks(publication_id,checked_at,url,http_status,content_hash,result,details_json) VALUES(?,?,?,?,?,?,?)", (publication_id,now(),url,http_status,content_hash,result,json.dumps(details or {}, sort_keys=True)))
+        log_event(c, "PUBLICATION_CHECKED", "quality-assurance", "publication", publication_id, result, "low", {"url": url, "http_status": http_status, "content_hash": content_hash})
+
+def update_product_publication(url: str, version: str | None = None) -> None:
+    with connect() as c:
+        c.execute("UPDATE products SET public_url=?,version=COALESCE(?,version) WHERE id=(SELECT id FROM products ORDER BY rowid DESC LIMIT 1)", (url,version))
+
+def record_distribution_metric(channel: str, source: str, impressions: int | None = None, visits: int | None = None, clicks: int | None = None, inquiries: int | None = None, notes: str = "") -> None:
+    with connect() as c:
+        c.execute("INSERT INTO distribution_metrics(channel,source,recorded_at,impressions,visits,clicks,inquiries,notes) VALUES(?,?,?,?,?,?,?,?)", (channel,source,now(),impressions,visits,clicks,inquiries,notes))
+        log_event(c, "DISTRIBUTION_METRIC_RECORDED", "performance", "distribution", channel, "ok", "low", {"source": source, "impressions": impressions, "visits": visits, "clicks": clicks, "inquiries": inquiries})
 
 def dashboard_snapshot() -> dict:
     with connect() as c:
@@ -270,11 +324,15 @@ def dashboard_snapshot() -> dict:
         sandbox_orders = [dict(x) for x in c.execute("SELECT * FROM orders WHERE is_sandbox=1 ORDER BY updated_at DESC LIMIT 20")]
         opportunities = [dict(x) for x in c.execute("SELECT * FROM opportunities ORDER BY probability DESC")]
         product = c.execute("SELECT * FROM products ORDER BY rowid DESC LIMIT 1").fetchone()
+        publication = c.execute("SELECT p.id,p.channel,p.url,p.published_at,p.approval_status,pc.checked_at,pc.http_status,pc.result FROM publications p LEFT JOIN publication_checks pc ON pc.publication_id=p.id WHERE p.id=(SELECT id FROM publications ORDER BY rowid DESC LIMIT 1) ORDER BY pc.id DESC LIMIT 1").fetchone()
+        distribution_metrics = [dict(x) for x in c.execute("SELECT * FROM distribution_metrics ORDER BY id DESC LIMIT 20")]
         worker_status = [dict(x) for x in c.execute("SELECT id,name,status,current_task,last_activity,next_action,retry_count,blocking_reason,last_result FROM agents WHERE status!='IDLE' ORDER BY last_activity DESC")]
         costs = c.execute("SELECT COALESCE(SUM(amount_usd),0) AS total FROM costs").fetchone()["total"]
         revenue = c.execute("SELECT COALESCE(SUM(quoted_amount_usd),0) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
         buyers = c.execute("SELECT COUNT(*) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
-        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
+        offer = offer_config().get("offer", {})
+        intake = {"public_url": offer.get("intake_url", ""), "api_url": offer.get("intake_api_url", ""), "hosted_backend_verified": bool(offer.get("hosted_intake_backend_verified", False)), "local_route": "/intake"}
+        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "publication": dict(publication) if publication else None, "distribution_metrics": distribution_metrics, "intake": intake, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
 
 if __name__ == "__main__":
     init_db()

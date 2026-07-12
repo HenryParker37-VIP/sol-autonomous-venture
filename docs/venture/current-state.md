@@ -8,8 +8,9 @@
 - PayPal: https://www.paypal.me/PARKERHENRY304/5USD
 - Verified live revenue: $0 until the owner confirms a genuine external payment
 - Operating cost: $0 recorded
-- Safety: GitHub Pages publishing enabled for the allowlisted channel; outreach drafts remain rate-limited; emergency stop off
-- Last verified test: `python3 milestone_engine.py` passed Milestones 1-15 and started Milestone 16
-- Next action: operate the live experiment without fabricating traffic, buyers, payments, or revenue; owner confirmation is required when a genuine payment arrives
+- Safety: GitHub Pages publishing and lawful distribution controls enabled; emergency stop off
+- Intake: public static form is live, local persistent API is executable, hosted persistent intake backend is NOT VERIFIED
+- Last verified test: `python3 milestone_engine.py` passed Milestones 1-15 with complete evidence and started Milestone 16
+- Next action: operate the live experiment without fabricating traffic, buyers, payments, or revenue; hosted intake remains an explicit readiness risk until a persistent free backend is configured
 
 This file is an evidence snapshot and should be refreshed after real implementation or live actions.

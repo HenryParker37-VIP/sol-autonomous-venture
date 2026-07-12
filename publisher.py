@@ -2,6 +2,7 @@
 """Publish only the static landing page to the allowlisted GitHub Pages channel."""
 from __future__ import annotations
 import json
+import hashlib
 import shutil
 import subprocess
 from pathlib import Path
@@ -23,20 +24,25 @@ def publish() -> dict:
         if not state["publishing_enabled"] or state["emergency_stop"]:
             raise PermissionError("publishing control is not enabled or emergency stop is active")
     shutil.copy2(ROOT / "landing-page" / "index.html", ROOT / "docs" / "index.html")
+    shutil.copy2(ROOT / "intake.html", ROOT / "docs" / "intake.html")
     remote = run("git", "remote", "get-url", "origin", check=False)
     if remote.returncode != 0:
         run("gh", "repo", "create", f"{OWNER}/{REPO}", "--public", "--source", str(ROOT), "--remote", "origin", "--push")
     else:
-        run("git", "add", "docs/index.html", ".github/workflows/pages.yml", "config/venture.json")
+        run("git", "add", "docs/index.html", "docs/intake.html", ".github/workflows/pages.yml", "config/venture.json")
         run("git", "commit", "-m", "Publish approved static landing page", check=False)
         run("git", "push", "origin", "main")
     run("gh", "api", "--method", "POST", f"repos/{OWNER}/{REPO}/pages", "-f", "build_type=workflow", check=False)
     config_path = ROOT / "config" / "venture.json"
     config = json.loads(config_path.read_text())
     config["offer"]["public_url"] = PUBLIC_URL
+    config["offer"]["intake_url"] = PUBLIC_URL + "intake.html"
     config_path.write_text(json.dumps(config, indent=2) + "\n")
-    db.add_event("PUBLICATION_COMPLETED", "publishing", "publication", "github-pages", "ok", "medium", {"channel": "github-pages", "url": PUBLIC_URL, "allowlisted": True})
-    return {"channel": "github-pages", "url": PUBLIC_URL, "repo": f"{OWNER}/{REPO}"}
+    publication_id = db.record_publication("github-pages", PUBLIC_URL, "landing-page/index.html + intake.html", "AUTO_APPROVED", "medium", rollback_ref=f"git:{REPO}:main")
+    db.update_product_publication(PUBLIC_URL)
+    db.add_event("PUBLICATION_COMPLETED", "publishing", "publication", publication_id, "ok", "medium", {"channel": "github-pages", "url": PUBLIC_URL, "allowlisted": True, "timestamped": True})
+    db.record_distribution_metric("github-pages", "public-landing-page", notes="Publication is measurable; visitor counts remain unknown until analytics evidence exists")
+    return {"channel": "github-pages", "url": PUBLIC_URL, "intake_url": PUBLIC_URL + "intake.html", "repo": f"{OWNER}/{REPO}", "publication_id": publication_id}
 
 if __name__ == "__main__":
     print(json.dumps(publish(), indent=2))

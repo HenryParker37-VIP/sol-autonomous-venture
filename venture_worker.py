@@ -18,6 +18,10 @@ def work_once(task_id: str | None = None) -> int:
             task = c.execute("SELECT * FROM tasks WHERE status='BACKLOG' ORDER BY priority ASC, created_at ASC LIMIT 1").fetchone()
     if not task:
         db.add_event("WORKER_HEALTHCHECK", "worker", "venture", "1", "idle", "low")
+        with db.connect() as c:
+            state = c.execute("SELECT current_milestone FROM venture_state WHERE id=1").fetchone()
+        if state and state[0] == "LIVE_EXPERIMENT":
+            db.set_agent_status("venture-director", "WAITING_ON_MARKET", "LIVE_EXPERIMENT", "Monitor availability, schedule lawful distribution, analyze funnel, evaluate pivots", "", last_result="HEALTHCHECK_OK")
         return 0
     db.transition_task(task["id"], "BUILDING", {"worker":"local"}, "QUEUED")
     db.transition_task(task["id"], "COMPLETED", {"worker":"local", "note":"internal task completed; no public side effect"}, "PASSED")
