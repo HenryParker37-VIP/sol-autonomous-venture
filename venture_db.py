@@ -52,7 +52,8 @@ def init_db() -> None:
         CREATE TABLE IF NOT EXISTS agents (
           id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, role TEXT NOT NULL,
           status TEXT NOT NULL, current_task TEXT NOT NULL DEFAULT '', last_activity TEXT NOT NULL,
-          next_action TEXT NOT NULL DEFAULT '', cost_usd REAL NOT NULL DEFAULT 0,
+          next_action TEXT NOT NULL DEFAULT '', blocking_reason TEXT NOT NULL DEFAULT '',
+          retry_count INTEGER NOT NULL DEFAULT 0, last_result TEXT NOT NULL DEFAULT '', cost_usd REAL NOT NULL DEFAULT 0,
           permissions_json TEXT NOT NULL DEFAULT '[]'
         );
         CREATE TABLE IF NOT EXISTS tasks (
@@ -110,6 +111,14 @@ def init_db() -> None:
         order_columns = {row[1] for row in c.execute("PRAGMA table_info(orders)")}
         if "is_sandbox" not in order_columns:
             c.execute("ALTER TABLE orders ADD COLUMN is_sandbox INTEGER NOT NULL DEFAULT 0")
+        agent_columns = {row[1] for row in c.execute("PRAGMA table_info(agents)")}
+        for column, definition in {
+            "blocking_reason": "TEXT NOT NULL DEFAULT ''",
+            "retry_count": "INTEGER NOT NULL DEFAULT 0",
+            "last_result": "TEXT NOT NULL DEFAULT ''",
+        }.items():
+            if column not in agent_columns:
+                c.execute(f"ALTER TABLE agents ADD COLUMN {column} {definition}")
         if c.execute("SELECT 1 FROM venture_state WHERE id=1").fetchone() is None:
             c.execute("INSERT INTO venture_state VALUES (1,?,?,?,?,?,?,?,?,?,?)", (
                 "SOL Autonomous Venture Engine", "Generate at least USD 5 in verified external revenue within seven days",
@@ -123,7 +132,7 @@ def init_db() -> None:
               ("opportunity-analyst", "Opportunity Analyst", "Score and compare opportunities"),
               ("product-builder", "Product Builder Agent", "Build and version the minimum sellable product"),
               ("design-presentation", "Design and Presentation Agent", "Prepare buyer-facing presentation"),
-              ("publishing", "Publishing Agent", "Prepare free public publication; manual submit required"),
+              ("publishing", "Publishing Agent", "Publish only to approved free channels with an allowlisted target"),
               ("distribution", "Distribution Agent", "Prepare lawful, non-spam discovery drafts"),
               ("sales", "Sales Agent", "Prepare truthful buyer replies and orders"),
               ("delivery", "Delivery Agent", "Prepare delivery after owner payment confirmation"),
@@ -153,6 +162,62 @@ def guarded_state(c: sqlite3.Connection) -> sqlite3.Row:
     row = c.execute("SELECT * FROM venture_state WHERE id=1").fetchone()
     if row is None: raise RuntimeError("database not initialized")
     return row
+
+def set_agent_status(agent_id: str, status: str, current_task: str = "", next_action: str = "", blocking_reason: str = "", retry_count: int | None = None, last_result: str = "") -> None:
+    with connect() as c:
+        agent = c.execute("SELECT retry_count FROM agents WHERE id=?", (agent_id,)).fetchone()
+        if agent is None: raise KeyError(agent_id)
+        retries = agent[0] if retry_count is None else retry_count
+        c.execute("UPDATE agents SET status=?,current_task=?,last_activity=?,next_action=?,blocking_reason=?,retry_count=?,last_result=? WHERE id=?", (status,current_task,now(),next_action,blocking_reason,retries,last_result,agent_id))
+        log_event(c, "AGENT_STATUS_CHANGED", agent_id, "agent", agent_id, status, "medium" if blocking_reason else "low", {"current_task": current_task, "next_action": next_action, "blocking_reason": blocking_reason, "retry_count": retries, "last_result": last_result})
+
+def begin_milestone(name: str, actor: str = "venture-director") -> None:
+    init_db()
+    with connect() as c:
+        state = guarded_state(c)
+        milestone = c.execute("SELECT * FROM milestones WHERE name=?", (name,)).fetchone()
+        if milestone is None: raise KeyError(name)
+        if state["current_milestone"] != name: raise RuntimeError(f"current milestone is {state['current_milestone']}, not {name}")
+        if milestone["state"] not in {"NOT_STARTED", "REOPENED", "FAILED", "REGRESSION_FAILED"}: return
+        c.execute("UPDATE milestones SET state='INSPECTING',updated_at=? WHERE name=?", (now(),name))
+        c.execute("UPDATE venture_state SET milestone_state='INSPECTING',updated_at=? WHERE id=1", (now(),))
+        agent = c.execute("SELECT id FROM agents WHERE id=? OR name LIKE ?", (actor, "%" + name.title().replace("_", " ") + "%")).fetchone()
+        if agent: c.execute("UPDATE agents SET status='WORKING',current_task=?,last_activity=?,next_action=?,blocking_reason='' WHERE id=?", (name,now(),"Execute acceptance checks and store evidence",agent[0]))
+        log_event(c, "MILESTONE_STARTED", actor, "milestone", name, "INSPECTING", "low")
+
+def pass_milestone(name: str, evidence: list[dict], actor: str = "venture-director") -> str | None:
+    if not evidence: raise ValueError("milestone evidence is required")
+    init_db()
+    with connect() as c:
+        state = guarded_state(c); milestone = c.execute("SELECT * FROM milestones WHERE name=?", (name,)).fetchone()
+        if milestone is None: raise KeyError(name)
+        if state["current_milestone"] != name: raise RuntimeError(f"cannot pass {name}; current is {state['current_milestone']}")
+        if milestone["state"] not in {"INSPECTING", "IMPLEMENTING", "TESTING"}: raise RuntimeError(f"{name} is not under execution")
+        c.execute("UPDATE milestones SET state='PASSED',evidence_json=?,updated_at=? WHERE name=?", (json.dumps(evidence, sort_keys=True),now(),name))
+        ordinal = milestone["ordinal"]; next_row = c.execute("SELECT * FROM milestones WHERE ordinal=?", (ordinal+1,)).fetchone()
+        next_name = next_row["name"] if next_row else None
+        if next_row:
+            c.execute("UPDATE milestones SET state='INSPECTING',updated_at=? WHERE ordinal=? AND state='NOT_STARTED'", (now(),ordinal+1))
+        c.execute("UPDATE venture_state SET current_milestone=?,milestone_state=?,updated_at=? WHERE id=1", (next_name or name,"INSPECTING" if next_name else "PASSED",now()))
+        c.execute("UPDATE agents SET status='COMPLETED',last_activity=?,last_result=? WHERE current_task=?", (now(),"PASSED",name))
+        if next_name:
+            c.execute("UPDATE agents SET status='WORKING',current_task=?,last_activity=?,next_action=?,blocking_reason='' WHERE id='venture-director'", (next_name,now(),"Execute acceptance checks and advance automatically",))
+        log_event(c, "MILESTONE_PASSED", actor, "milestone", name, "PASSED", "low", {"evidence": evidence, "next_milestone": next_name})
+        return next_name
+
+def fail_milestone(name: str, reason: str, actor: str = "venture-director") -> None:
+    with connect() as c:
+        c.execute("UPDATE milestones SET state='FAILED',evidence_json=?,updated_at=? WHERE name=?", (json.dumps([{"error": reason}]),now(),name))
+        c.execute("UPDATE venture_state SET milestone_state='FAILED',updated_at=? WHERE id=1", (now(),))
+        log_event(c, "MILESTONE_FAILED", actor, "milestone", name, "FAILED", "medium", {"reason": reason})
+
+def record_cost(category: str, amount_usd: float, note: str, task_id: str = "") -> None:
+    if amount_usd < 0: raise ValueError("cost cannot be negative")
+    with connect() as c:
+        total = c.execute("SELECT COALESCE(SUM(amount_usd),0) FROM costs").fetchone()[0]
+        if total + amount_usd > 3: raise PermissionError("USD 3 operating-cost ceiling would be exceeded")
+        c.execute("INSERT INTO costs(at,category,amount_usd,task_id,note) VALUES(?,?,?,?,?)", (now(),category,amount_usd,task_id,note))
+        log_event(c, "COST_RECORDED", "performance", "cost", str(c.lastrowid), "ok", "medium" if amount_usd else "low", {"amount_usd": amount_usd, "category": category})
 
 def create_task(assigned_agent: str, objective: str, expected_output: str, priority: int = 5, input_data: dict | None = None, idempotency_key: str | None = None) -> str:
     tid = str(uuid.uuid4())
@@ -198,14 +263,16 @@ def dashboard_snapshot() -> dict:
         milestones = [dict(x) for x in c.execute("SELECT * FROM milestones ORDER BY ordinal")]
         agents = [dict(x) for x in c.execute("SELECT * FROM agents ORDER BY name")]
         tasks = [dict(x) for x in c.execute("SELECT * FROM tasks ORDER BY updated_at DESC LIMIT 25")]
-        events = [dict(x) for x in c.execute("SELECT * FROM events ORDER BY id DESC LIMIT 40")]
+        live_events = [dict(x) for x in c.execute("SELECT * FROM events WHERE event_type NOT LIKE 'SANDBOX_%' AND actor NOT LIKE 'sandbox%' ORDER BY id DESC LIMIT 40")]
+        sandbox_events = [dict(x) for x in c.execute("SELECT * FROM events WHERE event_type LIKE 'SANDBOX_%' OR actor LIKE 'sandbox%' ORDER BY id DESC LIMIT 40")]
         orders = [dict(x) for x in c.execute("SELECT * FROM orders ORDER BY updated_at DESC LIMIT 20")]
         opportunities = [dict(x) for x in c.execute("SELECT * FROM opportunities ORDER BY probability DESC")]
         product = c.execute("SELECT * FROM products ORDER BY rowid DESC LIMIT 1").fetchone()
+        worker_status = [dict(x) for x in c.execute("SELECT id,name,status,current_task,last_activity,next_action,retry_count,blocking_reason,last_result FROM agents WHERE status!='IDLE' ORDER BY last_activity DESC")]
         costs = c.execute("SELECT COALESCE(SUM(amount_usd),0) AS total FROM costs").fetchone()["total"]
         revenue = c.execute("SELECT COALESCE(SUM(quoted_amount_usd),0) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
         buyers = c.execute("SELECT COUNT(*) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
-        return {"state": state, "milestones": milestones, "agents": agents, "tasks": tasks, "events": events, "orders": orders, "opportunities": opportunities, "product": dict(product) if product else None, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
+        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "opportunities": opportunities, "product": dict(product) if product else None, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
 
 if __name__ == "__main__":
     init_db()

@@ -16,9 +16,11 @@
     "max_followups_per_person": 1
   },
   "controls": {
-    "publishing_enabled": false,
-    "outreach_enabled": false,
+    "publishing_enabled": true,
+    "outreach_enabled": true,
     "paused": false,
     "emergency_stop": false
-  }
+  },
+  "publication_allowlist": ["github-pages"],
+  "outreach_policy": "prepare and rate-limit lawful drafts; no unsolicited auto-DMs"
 }
