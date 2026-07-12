@@ -5,14 +5,17 @@ import argparse
 import time
 import venture_db as db
 
-def work_once() -> int:
+def work_once(task_id: str | None = None) -> int:
     db.init_db()
     with db.connect() as c:
         state = c.execute("SELECT paused, emergency_stop FROM venture_state WHERE id=1").fetchone()
         if state[0] or state[1]:
             db.add_event("WORKER_PAUSED", "worker", "venture", "1", "skipped", "medium", {"paused": bool(state[0]), "emergency_stop": bool(state[1])})
             return 0
-        task = c.execute("SELECT * FROM tasks WHERE status='BACKLOG' ORDER BY priority ASC, created_at ASC LIMIT 1").fetchone()
+        if task_id:
+            task = c.execute("SELECT * FROM tasks WHERE id=? AND status='BACKLOG'", (task_id,)).fetchone()
+        else:
+            task = c.execute("SELECT * FROM tasks WHERE status='BACKLOG' ORDER BY priority ASC, created_at ASC LIMIT 1").fetchone()
     if not task:
         db.add_event("WORKER_HEALTHCHECK", "worker", "venture", "1", "idle", "low")
         return 0
@@ -23,10 +26,11 @@ def work_once() -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--task-id")
     parser.add_argument("--interval", type=int, default=30)
     args = parser.parse_args()
     if args.once:
-        print(f"Processed {work_once()} task(s)")
+        print(f"Processed {work_once(args.task_id)} task(s)")
     else:
         while True:
             work_once()

@@ -2,7 +2,8 @@
 
 | Time | Channel | Target | Action | URL | Status | Reply | Next action |
 |---|---|---|---|---|---|---|---|
-| 2026-07-13 | Reddit | Owner profile | Draft prepared; not submitted | `u/Valuable_Pickle_7264` | awaiting manual approval | 0 | Review exact draft and submit manually if desired |
+| 2026-07-13 | GitHub Pages | Approved static channel | Landing page published automatically | `https://henryparker37-vip.github.io/sol-autonomous-venture/` | live | 0 | Monitor visits and qualified inquiries |
+| 2026-07-13 | Reddit | Owner profile | Draft prepared; not submitted | `u/Valuable_Pickle_7264` | not submitted | 0 | Social publication remains draft-only until the editor accepts a safe submission path |
 
 ## Funnel
 

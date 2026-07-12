@@ -41,7 +41,7 @@ def architecture():
 
 def queue():
     task = db.create_task("venture-director", "queue persistence smoke test", "completed internal task", idempotency_key="milestone-2-queue")
-    subprocess.run([sys.executable, str(ROOT / "venture_worker.py"), "--once"], cwd=ROOT, check=True, capture_output=True, text=True)
+    subprocess.run([sys.executable, str(ROOT / "venture_worker.py"), "--once", "--task-id", task], cwd=ROOT, check=True, capture_output=True, text=True)
     with db.connect() as c:
         row = c.execute("SELECT status,verification_status FROM tasks WHERE id=?", (task,)).fetchone()
     assert row["status"] == "COMPLETED" and row["verification_status"] == "PASSED"
@@ -88,7 +88,7 @@ def product():
         assert opportunity
         c.execute("DELETE FROM products")
         pid = "prod-" + opportunity["id"]
-        c.execute("INSERT INTO products VALUES(?,?,?,?,?,?,?,?,?,?)", (pid,opportunity["product_or_service"],"A focused copy improvement delivered within 24 hours.",opportunity["target_buyer"],opportunity["price_usd"],"1.0.0",json.dumps(["product/intake.md","product/delivery-template.md"]),"","BUILT","PENDING"))
+        c.execute("INSERT INTO products(id,name,description,target_buyer,price_usd,version,files_json,preview_url,public_url,build_status,qa_status) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (pid,opportunity["product_or_service"],"A focused copy improvement delivered within 24 hours.",opportunity["target_buyer"],opportunity["price_usd"],"1.0.0",json.dumps(["product/intake.md","product/delivery-template.md"]),"","","BUILT","PENDING"))
     return [evidence("Product record is derived from selected opportunity", {"product_id": pid, "source_opportunity": opportunity["id"]}), evidence("Delivery artifacts exist", {"files": ["product/intake.md","product/delivery-template.md"]})]
 
 def qa():
@@ -160,6 +160,8 @@ def main():
         with db.connect() as c: current = c.execute("SELECT current_milestone,milestone_state FROM venture_state WHERE id=1").fetchone()
     if current["current_milestone"] == "LIVE_EXPERIMENT":
         db.begin_milestone("LIVE_EXPERIMENT")
+        with db.connect() as c:
+            c.execute("UPDATE venture_state SET experiment_status='LIVE_EXPERIMENT',updated_at=? WHERE id=1", (db.now(),))
         db.set_agent_status("venture-director", "BLOCKED", "LIVE_EXPERIMENT", "Wait for a genuine external buyer and owner payment confirmation", "External revenue is not yet verified", last_result="WAITING_EXTERNAL_STATE")
         db.add_event("LIVE_EXPERIMENT_STARTED", "venture-director", "milestone", "LIVE_EXPERIMENT", "waiting", "high", {"reason": "requires genuine external buyer and owner-confirmed payment", "fake_activity": False})
         print("STARTED LIVE_EXPERIMENT; waiting for genuine buyer and owner payment confirmation")

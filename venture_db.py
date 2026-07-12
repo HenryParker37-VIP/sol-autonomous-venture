@@ -119,6 +119,7 @@ def init_db() -> None:
         }.items():
             if column not in agent_columns:
                 c.execute(f"ALTER TABLE agents ADD COLUMN {column} {definition}")
+        c.execute("UPDATE agents SET role='Publish only to approved free channels with an allowlisted target' WHERE id='publishing'")
         if c.execute("SELECT 1 FROM venture_state WHERE id=1").fetchone() is None:
             c.execute("INSERT INTO venture_state VALUES (1,?,?,?,?,?,?,?,?,?,?)", (
                 "SOL Autonomous Venture Engine", "Generate at least USD 5 in verified external revenue within seven days",
@@ -265,14 +266,15 @@ def dashboard_snapshot() -> dict:
         tasks = [dict(x) for x in c.execute("SELECT * FROM tasks ORDER BY updated_at DESC LIMIT 25")]
         live_events = [dict(x) for x in c.execute("SELECT * FROM events WHERE event_type NOT LIKE 'SANDBOX_%' AND actor NOT LIKE 'sandbox%' ORDER BY id DESC LIMIT 40")]
         sandbox_events = [dict(x) for x in c.execute("SELECT * FROM events WHERE event_type LIKE 'SANDBOX_%' OR actor LIKE 'sandbox%' ORDER BY id DESC LIMIT 40")]
-        orders = [dict(x) for x in c.execute("SELECT * FROM orders ORDER BY updated_at DESC LIMIT 20")]
+        orders = [dict(x) for x in c.execute("SELECT * FROM orders WHERE is_sandbox=0 ORDER BY updated_at DESC LIMIT 20")]
+        sandbox_orders = [dict(x) for x in c.execute("SELECT * FROM orders WHERE is_sandbox=1 ORDER BY updated_at DESC LIMIT 20")]
         opportunities = [dict(x) for x in c.execute("SELECT * FROM opportunities ORDER BY probability DESC")]
         product = c.execute("SELECT * FROM products ORDER BY rowid DESC LIMIT 1").fetchone()
         worker_status = [dict(x) for x in c.execute("SELECT id,name,status,current_task,last_activity,next_action,retry_count,blocking_reason,last_result FROM agents WHERE status!='IDLE' ORDER BY last_activity DESC")]
         costs = c.execute("SELECT COALESCE(SUM(amount_usd),0) AS total FROM costs").fetchone()["total"]
         revenue = c.execute("SELECT COALESCE(SUM(quoted_amount_usd),0) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
         buyers = c.execute("SELECT COUNT(*) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
-        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "opportunities": opportunities, "product": dict(product) if product else None, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
+        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
 
 if __name__ == "__main__":
     init_db()

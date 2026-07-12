@@ -1,6 +1,6 @@
 # Live links
 
-- Landing page: https://henryparker37-vip.github.io/24h-five-dollar-sprint/
+- Landing page: https://henryparker37-vip.github.io/sol-autonomous-venture/
 - PayPal: https://www.paypal.me/PARKERHENRY304/5USD
 - Local control center: http://127.0.0.1:7100/venture
 

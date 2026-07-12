@@ -13,7 +13,7 @@ with db.connect() as c:
     c.execute("DELETE FROM opportunities")
     c.execute("DELETE FROM orders")
     c.execute("DELETE FROM events WHERE event_type LIKE 'SANDBOX_%'")
-    c.execute("INSERT INTO products(id,name,description,target_buyer,price_usd,version,files_json,public_url,build_status,qa_status) VALUES(?,?,?,?,?,?,?,?,?,?)", ("prod-bio-fix","$5 Bio Fix + Pinned Hook Pack","Manual profile copy improvement delivered within 24 hours","Creators and freelancers",5.0,"1.0.0",json.dumps(["product/intake.md","product/delivery-template.md"]),"https://henryparker37-vip.github.io/24h-five-dollar-sprint/","BUILT","PASSED"))
+    c.execute("INSERT INTO products(id,name,description,target_buyer,price_usd,version,files_json,public_url,build_status,qa_status) VALUES(?,?,?,?,?,?,?,?,?,?)", ("prod-bio-fix","$5 Bio Fix + Pinned Hook Pack","Manual profile copy improvement delivered within 24 hours","Creators and freelancers",5.0,"1.0.0",json.dumps(["product/intake.md","product/delivery-template.md"]),"https://henryparker37-vip.github.io/sol-autonomous-venture/","BUILT","PASSED"))
     c.execute("INSERT INTO opportunities VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ("opp-bio-fix","$5 Bio Fix service","Creators with vague profiles","Unclear bios reduce response clarity","Public profile pain points","Free alternatives exist",2.0,"Public creator communities",5.0,0.0,"Low legal risk; outreach risk controlled",0.78,"",1))
     db.log_event(c,"SANDBOX_PRODUCT_CREATED","sandbox","product","prod-bio-fix","ok","low",{"revenue_counted":False})
 oid = db.create_order("prod-bio-fix", "sandbox_customer_001", 5.0, "https://example.invalid/profile", "sandbox@example.invalid", is_sandbox=True)

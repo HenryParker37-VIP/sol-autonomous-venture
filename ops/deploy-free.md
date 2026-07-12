@@ -1,8 +1,8 @@
 # Free deployment
 
-The current public landing page is already available through GitHub Pages at:
+The current public landing page is available through the automatically configured GitHub Pages channel at:
 
-`https://henryparker37-vip.github.io/24h-five-dollar-sprint/`
+`https://henryparker37-vip.github.io/sol-autonomous-venture/`
 
 ## Manual GitHub Pages
 
