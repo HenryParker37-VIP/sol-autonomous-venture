@@ -34,6 +34,13 @@ Generated from persisted milestone evidence. `NOT_VERIFIED` rows reopen their mi
 | SANDBOX | PASSED | Sandbox order and authorized test confirmation executed in isolated database | milestone_engine.py | python3 milestone_engine.py --milestone SANDBOX | {"database": "data/sandbox.sqlite3", "revenue_counted": false} | 2026-07-12T17:48:39+00:00 | milestones.name=SANDBOX | PASS |  |
 | LIVE_READINESS | PASSED | Public hosted intake API persists customer submissions | netlify/functions/orders.mjs + docs/order-confirmation.html | curl external intake; curl external confirmation; python3 scripts/verify-hosted-intake.py | Intake HTTP 200; confirmation HTTP 200; server-side order ID and PayPal instructions returned | 2026-07-12T18:34:00+00:00 | venture_state.hosted_intake_backend_verified=true; experiment_status=LIVE_EXPERIMENT | PASS | Genuine payment still requires owner confirmation |
 
+## Day 1 external acquisition evidence
+
+| Acceptance criterion | Implementation file | Command executed | Actual output | Timestamp | Persisted database record | Test result | Failure or limitation |
+|---|---|---|---|---|---|---|---|
+| One external buyer-facing post is publicly verified | LinkedIn composer; `ops/evidence/linkedin-day1-post.png` | Browser plugin: open LinkedIn feed, open composer, type via editor, submit, read `Post successful` and `View post` URL | `https://www.linkedin.com/feed/update/urn:li:share:7482152003985633280`; account `Henry Parker`; visibility `Post to Anyone` | 2026-07-12T19:22:39Z | `EXTERNAL_POST_PUBLISHED`, key `linkedin:7482152003985633280`; distribution metric `linkedin/linkedin-day1` | PASS | LinkedIn analytics are unavailable at publication time; visits and clicks remain unestimated |
+| LinkedIn rules and account publishing capability were checked before posting | `ops/posting-targets.md` | Browser plugin: inspect visible account, `Start a post`, `Post to Anyone`; read `https://www.linkedin.com/legal/professional-community-policies` | Identity and publishing controls visible; rules checked for authenticity, professionalism, relevance, and anti-spam requirements | 2026-07-12T19:22:39Z | Same `EXTERNAL_POST_PUBLISHED` event details include `account_identity`, `visibility`, and `rules_checked` | PASS | No DMs sent; no CAPTCHA, warning, restriction, or suspicious-login notice observed |
+
 ## Commercial acceptance audit
 
 | Acceptance criterion | Implementation file | Command executed | Actual output | Timestamp | Persisted database record | Test result | Failure or limitation |
