@@ -1,0 +1,42 @@
+# Live acquisition opportunities
+
+Research date: 2026-07-13. All entries are public URLs only. No private contact data was collected. `PREPARE_ONLY` means the owner must inspect the current thread/profile and manually approve any reply or message. `DO_NOT_CONTACT` means the public rules or context make promotion inappropriate.
+
+Primary segment: **freelancers with unclear service positioning**. The segment wins on visible problem, easy public discovery, clear before/after proof, low trust barrier, and low-scope $5 purchase. Other segments remain secondary test candidates: indie builders are often peers/competitors; coaches need stronger trust and claim boundaries; students are budget-sensitive; small businesses require more context; creators often want content ideas rather than profile clarity.
+
+| # | Public URL | Platform | Buyer type | Observable signal | Offer relevance | Promotion/contact permission | Contact method | Intrusion risk | Next action |
+|---:|---|---|---|---|---|---|---|---|---|
+| 1 | https://www.reddit.com/r/freelance/comments/ | Reddit | Freelancer | Public critique and client-positioning discussions | Bio can name buyer and outcome | Community rules vary | Helpful reply only if thread allows | High | Inspect current rules; no link by default |
+| 2 | https://www.reddit.com/r/freelanceWriters/comments/yeq3vm/ | Reddit | Freelance writer | Feedback thread explicitly invites critique | Bio and portfolio summary clarity | Reply allowed by thread rules; promotion unclear | Free example in thread | Medium | Give feedback, omit offer unless invited |
+| 3 | https://www.reddit.com/r/resumes/comments/gmb7fr/ | Reddit | Early-career freelancer | Weak LinkedIn headline request | Headline/bio rewrite fits scope | Rules warn about spam; no pitch | Helpful comment | High | Comment only if still open and relevant |
+| 4 | https://www.reddit.com/r/LinkedInTips/comments/1ssbj8b/ | Reddit | Professional/freelancer | Discussion asks what profile changes help | Clear value headline is directly relevant | Promotion not established | Comment with one rewrite | Medium | Manual review |
+| 5 | https://www.reddit.com/r/linkedin/comments/1qncvl5/ | Reddit | Job-seeking professional | Profile feedback requested | Headline and next-action clarity | No unsolicited service pitch | Free suggestion | High | Helpful reply only |
+| 6 | https://www.reddit.com/r/Resume/comments/1swhx3s/ | Reddit | Professional profile owner | Discussion about evergreen LinkedIn identity | Bio positioning problem | Rules must be checked | Helpful reply | Medium | Observe, do not pitch |
+| 7 | https://www.reddit.com/r/Entrepreneur/comments/1k7gcgz | Reddit | Small founder | Feedback thread | Profile/offer clarity often visible | Promotion banned outside designated threads | Weekly feedback thread only | High | Do not contact from this thread |
+| 8 | https://www.reddit.com/r/Entrepreneur/comments/1u716za | Reddit | Entrepreneur | Public request for feedback | Can give one free clarity edit | Promotion banned | Comment without link | High | Do not pitch |
+| 9 | https://www.reddit.com/r/Entrepreneur/comments/1rg2ob4 | Reddit | Founder | Feedback Friday thread | Relevant founder positioning | Promotion banned outside thread | Helpful comment only | High | No offer link |
+| 10 | https://www.reddit.com/r/Entrepreneur/comments/1lfz9vr | Reddit | Small-business founder | Feedback Friday thread | Clear service line helps | Promotion banned outside thread | Helpful comment only | High | No offer link |
+| 11 | https://www.reddit.com/r/indiehackers/comments/1kakskj | Reddit | Indie builder | Public research about creator link-in-bio pain | Bio and CTA clarity relevant | Self-promotion may be unwelcome | Useful reply | Medium | Reply without pitch unless invited |
+| 12 | https://www.reddit.com/r/indiehackers/comments/1t59z1u | Reddit | Indie builder | First-user acquisition discussion | Profile clarity helps discovery | Community norms require value first | Helpful reply | Medium | Offer optional only after response |
+| 13 | https://www.reddit.com/r/indiehackers/comments/1uhjyci | Reddit | Indie builder | Onboarding clarity discussion | Shows demand for first-step clarity | Promotion unclear | Helpful reply | Medium | Research only |
+| 14 | https://www.reddit.com/r/indiehackers/comments/1sghg9c | Reddit | Founder | Selling vs helping discussion | Value-first positioning relevant | Promotion unclear | Conversation reply | Medium | No automated outreach |
+| 15 | https://www.business.reddit.com/learning-hub/articles/nail-down-target-audience | Reddit Business | Small operator | Public audience-definition guidance | Buyer/audience wording is core offer | Educational page, no direct outreach | Use as research source | Low | Create original checklist response |
+| 16 | https://www.business.reddit.com/learning-hub/search-results | Reddit Business | Small operator | Business profile and pinned-content guidance | Bio and pinned hook fit | No direct prospecting | Publish useful companion content | Low | Content path |
+| 17 | https://www.reddit.com/r/smallbusiness/ | Reddit | Small-business owner | Service pages often omit outcome/location | Offer clarity relevant | Rules vary | Helpful reply only | High | Inspect thread rules first |
+| 18 | https://www.reddit.com/r/web_design/ | Reddit | Designer/freelancer | Portfolio feedback and positioning | Portfolio summary rewrite fits | Rules vary | Feedback comment | High | No mass replies |
+| 19 | https://www.reddit.com/r/freelanceWriters/ | Reddit | Freelance writer | Public portfolio and bio critique | Clear specialization matters | Rules vary | Comment | Medium | Manual thread selection |
+| 20 | https://www.reddit.com/r/Design/ | Reddit | Designer | Portfolio and self-presentation discussions | Bio + pinned hook | Rules vary | Helpful answer | High | Do not pitch without invitation |
+| 21 | https://www.indiehackers.com/ | Indie Hackers | Indie builder | Public maker launch/profile discussions | Product bio clarity | Community participation expected | Public reply | Medium | Build credibility first |
+| 22 | https://www.indiehackers.com/about | Indie Hackers | Indie builder | Community explicitly shares projects/feedback | Profile copy is observable | Rules must be followed | Useful discussion reply | Medium | No identical posts |
+| 23 | https://www.linkedin.com/feed/hashtag/?keywords=freelance | LinkedIn | Freelancer | Public freelance positioning posts | Direct audience match | Account/login and post rules required | Manual comment | Medium | Owner review required |
+| 24 | https://www.linkedin.com/feed/hashtag/?keywords=personalbranding | LinkedIn | Freelancer/consultant | Public personal-brand discussion | Bio clarity is central | Login and platform rules required | Manual comment | Medium | No auto-send |
+| 25 | https://www.linkedin.com/feed/hashtag/?keywords=freelancing | LinkedIn | Freelancer | Public service-positioning questions | Immediate relevance | Login required | Manual comment | Medium | Prepare only |
+| 26 | https://x.com/search?q=freelancer%20bio&src=typed_query | X | Freelancer | Public posts asking about positioning | One-sentence rewrite helps | Login and X rules required | Manual reply | Medium | Verify current post first |
+| 27 | https://x.com/search?q=indie%20hacker%20bio&src=typed_query | X | Indie builder | Public bio/launch posts | Pinned hook relevant | Login and X rules required | Manual reply | Medium | No repeated text |
+| 28 | https://www.reddit.com/r/NewTubers/ | Reddit | Creator | Public creator profile and bio discussions | Bio clarity pack may fit | Rules vary | Helpful reply | High | Creator is secondary segment |
+| 29 | https://www.reddit.com/r/Coaching/ | Reddit | Coach | Generic offer descriptions | Bio clarity relevant but trust-sensitive | Rules vary; no outcome promises | Helpful reply | High | Secondary only |
+| 30 | https://www.reddit.com/r/SmallBusiness/ | Reddit | Local service owner | Public service bios bury action/location | Bio rewrite relevant | Rules vary | Helpful reply | High | Secondary only |
+
+## Acquisition decision
+
+Use the freelancer segment first. Reddit entrepreneur threads with explicit anti-promotion rules are research-only and are not approved targets. The low-risk channel is the public GitHub Pages content library; LinkedIn/X/Reddit replies and direct outreach remain `PREPARE_ONLY` until the owner manually confirms the specific post and platform permissions.

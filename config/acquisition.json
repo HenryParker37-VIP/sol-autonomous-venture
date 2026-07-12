@@ -1,0 +1,15 @@
+{
+  "active_segment": "Freelancers with unclear service positioning",
+  "experiment_started": "2026-07-13",
+  "pivot_deadline": "2026-07-20",
+  "daily_tasks": [
+    "Publish one useful, platform-appropriate clarity asset",
+    "Review five public opportunities and prepare only personalized replies",
+    "Send no more than ten manually approved messages",
+    "Inspect referral sources, form starts, orders, and payment friction"
+  ],
+  "limits": {"messages_per_day": 10, "followups_per_person": 1, "followup_delay_hours": 48},
+  "pivot_rules": {"impressions_without_visits": 100, "visits_without_form_start": 20, "form_starts_without_orders": 5, "orders_without_payment": 3},
+  "best_channel": "GitHub Pages content library (verified public URLs; traffic still unmeasured)",
+  "current_bottleneck": "No observed live buyer signal yet; manual discovery and approval are active"
+}

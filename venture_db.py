@@ -17,6 +17,10 @@ def offer_config() -> dict:
     try: return json.loads((ROOT / "config" / "venture.json").read_text())
     except (OSError, json.JSONDecodeError): return {}
 
+def acquisition_config() -> dict:
+    try: return json.loads((ROOT / "config" / "acquisition.json").read_text())
+    except (OSError, json.JSONDecodeError): return {}
+
 MILESTONES = [
     "INSPECTION", "ARCHITECTURE", "QUEUE", "AGENTS", "DASHBOARD", "SECURITY",
     "RESEARCH", "PRODUCT", "QA", "PUBLICATION", "DISTRIBUTION", "SALES",
@@ -346,7 +350,7 @@ def dashboard_snapshot() -> dict:
         buyers = c.execute("SELECT COUNT(*) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
         offer = offer_config().get("offer", {})
         intake = {"public_url": offer.get("intake_url", ""), "api_url": offer.get("intake_api_url", ""), "hosted_backend_verified": bool(offer.get("hosted_intake_backend_verified", False)), "local_route": "/intake"}
-        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "publication": dict(publication) if publication else None, "distribution_metrics": distribution_metrics, "funnel": funnel, "referral_sources": referral_sources, "feedback": feedback, "intake": intake, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
+        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "publication": dict(publication) if publication else None, "distribution_metrics": distribution_metrics, "funnel": funnel, "referral_sources": referral_sources, "feedback": feedback, "acquisition": acquisition_config(), "intake": intake, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
 
 if __name__ == "__main__":
     init_db()
