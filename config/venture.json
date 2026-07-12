@@ -6,7 +6,7 @@
     "price_usd": 5.0,
     "delivery_hours": 24,
     "paypal_url": "https://www.paypal.me/PARKERHENRY304/5USD",
-    "public_url": "https://henryparker37-vip.github.io/24h-five-dollar-sprint/"
+    "public_url": "https://henryparker37-vip.github.io/sol-autonomous-venture/"
   },
   "limits": {
     "operating_cost_usd": 3.0,
@@ -21,6 +21,8 @@
     "paused": false,
     "emergency_stop": false
   },
-  "publication_allowlist": ["github-pages"],
+  "publication_allowlist": [
+    "github-pages"
+  ],
   "outreach_policy": "prepare and rate-limit lawful drafts; no unsolicited auto-DMs"
 }
