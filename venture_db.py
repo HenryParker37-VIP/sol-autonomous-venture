@@ -95,7 +95,7 @@ def init_db() -> None:
           preferred_tone TEXT NOT NULL DEFAULT '', additional_context TEXT NOT NULL DEFAULT '',
           consent_scope TEXT NOT NULL DEFAULT '', payment_reference TEXT NOT NULL DEFAULT '',
           delivery_path TEXT NOT NULL DEFAULT '', purchased_version TEXT NOT NULL DEFAULT '',
-          qa_evidence_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+          qa_evidence_json TEXT NOT NULL DEFAULT '[]', referral_source TEXT NOT NULL DEFAULT 'direct', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS publications (
           id TEXT PRIMARY KEY, channel TEXT NOT NULL, url TEXT NOT NULL, content TEXT NOT NULL,
@@ -125,6 +125,11 @@ def init_db() -> None:
           id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, control TEXT NOT NULL,
           value INTEGER NOT NULL, actor TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS feedback (
+          id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL,
+          feedback_text TEXT NOT NULL, permission_status TEXT NOT NULL DEFAULT 'REQUESTED',
+          public_text TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, approved_at TEXT
+        );
         """)
         order_columns = {row[1] for row in c.execute("PRAGMA table_info(orders)")}
         for column, definition in {
@@ -139,6 +144,7 @@ def init_db() -> None:
             "delivery_token": "TEXT NOT NULL DEFAULT ''",
             "purchased_version": "TEXT NOT NULL DEFAULT ''",
             "qa_evidence_json": "TEXT NOT NULL DEFAULT '[]'",
+            "referral_source": "TEXT NOT NULL DEFAULT 'direct'",
         }.items():
             if column not in order_columns:
                 c.execute(f"ALTER TABLE orders ADD COLUMN {column} {definition}")
@@ -270,12 +276,12 @@ def transition_task(task_id: str, status: str, result: dict | None = None, verif
         c.execute("UPDATE tasks SET status=?,result_json=?,verification_status=?,updated_at=? WHERE id=?", (status,json.dumps(result or {}),verification,now(),task_id))
         log_event(c, "TASK_TRANSITION", task["assigned_agent"], "task", task_id, status, "medium" if status in {"PUBLISHED","PAID"} else "low", {"verification": verification})
 
-def create_order(product_id: str, customer_id: str, amount: float, profile_url: str = "", buyer_contact: str = "", is_sandbox: bool = False, customer_email: str = "", target_audience: str = "", preferred_tone: str = "", additional_context: str = "", consent_scope: str = "", purchased_version: str = "") -> str:
+def create_order(product_id: str, customer_id: str, amount: float, profile_url: str = "", buyer_contact: str = "", is_sandbox: bool = False, customer_email: str = "", target_audience: str = "", preferred_tone: str = "", additional_context: str = "", consent_scope: str = "", purchased_version: str = "", referral_source: str = "direct") -> str:
     if amount <= 0: raise ValueError("amount must be positive")
     oid = "ord_" + uuid.uuid4().hex[:12]
     with connect() as c:
         if not consent_scope: raise ValueError("consent and scope acknowledgement is required")
-        c.execute("INSERT INTO orders(id,anonymous_customer_id,product_id,quoted_amount_usd,payment_status,order_status,profile_url,buyer_contact,is_sandbox,customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (oid,customer_id,product_id,amount,"UNVERIFIED","AWAITING_PAYMENT",profile_url,buyer_contact,int(is_sandbox),customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,now(),now()))
+        c.execute("INSERT INTO orders(id,anonymous_customer_id,product_id,quoted_amount_usd,payment_status,order_status,profile_url,buyer_contact,is_sandbox,customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,referral_source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (oid,customer_id,product_id,amount,"UNVERIFIED","AWAITING_PAYMENT",profile_url,buyer_contact,int(is_sandbox),customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,referral_source or "direct",now(),now()))
         log_event(c, "ORDER_CREATED", "sales", "order", oid, "AWAITING_PAYMENT", "medium", {"amount_usd": amount, "is_sandbox": is_sandbox})
     return oid
 
@@ -312,6 +318,11 @@ def record_distribution_metric(channel: str, source: str, impressions: int | Non
         c.execute("INSERT INTO distribution_metrics(channel,source,recorded_at,impressions,visits,clicks,inquiries,notes) VALUES(?,?,?,?,?,?,?,?)", (channel,source,now(),impressions,visits,clicks,inquiries,notes))
         log_event(c, "DISTRIBUTION_METRIC_RECORDED", "performance", "distribution", channel, "ok", "low", {"source": source, "impressions": impressions, "visits": visits, "clicks": clicks, "inquiries": inquiries})
 
+def record_feedback(order_id: str, feedback_text: str, permission_status: str = "REQUESTED", public_text: str = "") -> None:
+    if not feedback_text.strip(): raise ValueError("feedback text is required")
+    with connect() as c:
+        c.execute("INSERT INTO feedback(order_id,feedback_text,permission_status,public_text,created_at) VALUES(?,?,?,?,?)", (order_id, feedback_text.strip(), permission_status, public_text.strip(), now()))
+
 def dashboard_snapshot() -> dict:
     with connect() as c:
         state = dict(guarded_state(c))
@@ -326,13 +337,16 @@ def dashboard_snapshot() -> dict:
         product = c.execute("SELECT * FROM products ORDER BY rowid DESC LIMIT 1").fetchone()
         publication = c.execute("SELECT p.id,p.channel,p.url,p.published_at,p.approval_status,pc.checked_at,pc.http_status,pc.result FROM publications p LEFT JOIN publication_checks pc ON pc.publication_id=p.id WHERE p.id=(SELECT id FROM publications ORDER BY rowid DESC LIMIT 1) ORDER BY pc.id DESC LIMIT 1").fetchone()
         distribution_metrics = [dict(x) for x in c.execute("SELECT * FROM distribution_metrics ORDER BY id DESC LIMIT 20")]
+        feedback = [dict(x) for x in c.execute("SELECT order_id,permission_status,created_at,approved_at FROM feedback ORDER BY id DESC LIMIT 20")]
+        funnel = dict(c.execute("SELECT COUNT(*) AS orders, COALESCE(SUM(CASE WHEN payment_status='UNVERIFIED' THEN 1 ELSE 0 END),0) AS awaiting_payment, COALESCE(SUM(CASE WHEN payment_status='PAID' THEN 1 ELSE 0 END),0) AS paid_orders, COALESCE(SUM(CASE WHEN order_status='COMPLETED' THEN 1 ELSE 0 END),0) AS fulfilled_orders FROM orders WHERE is_sandbox=0").fetchone())
+        referral_sources = [dict(x) for x in c.execute("SELECT COALESCE(NULLIF(referral_source,''),'direct') AS source, COUNT(*) AS orders FROM orders WHERE is_sandbox=0 GROUP BY source ORDER BY orders DESC").fetchall()]
         worker_status = [dict(x) for x in c.execute("SELECT id,name,status,current_task,last_activity,next_action,retry_count,blocking_reason,last_result FROM agents WHERE status!='IDLE' ORDER BY last_activity DESC")]
         costs = c.execute("SELECT COALESCE(SUM(amount_usd),0) AS total FROM costs").fetchone()["total"]
         revenue = c.execute("SELECT COALESCE(SUM(quoted_amount_usd),0) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
         buyers = c.execute("SELECT COUNT(*) AS total FROM orders WHERE payment_status='PAID' AND is_sandbox=0").fetchone()["total"]
         offer = offer_config().get("offer", {})
         intake = {"public_url": offer.get("intake_url", ""), "api_url": offer.get("intake_api_url", ""), "hosted_backend_verified": bool(offer.get("hosted_intake_backend_verified", False)), "local_route": "/intake"}
-        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "publication": dict(publication) if publication else None, "distribution_metrics": distribution_metrics, "intake": intake, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
+        return {"state": state, "milestones": milestones, "agents": agents, "worker_status": worker_status, "tasks": tasks, "events": live_events, "sandbox_events": sandbox_events, "orders": orders, "sandbox_orders": sandbox_orders, "opportunities": opportunities, "product": dict(product) if product else None, "publication": dict(publication) if publication else None, "distribution_metrics": distribution_metrics, "funnel": funnel, "referral_sources": referral_sources, "feedback": feedback, "intake": intake, "financial": {"cost_usd": costs, "revenue_usd": revenue, "net_usd": revenue-costs, "budget_remaining_usd": max(0, 3-costs), "buyers": buyers}}
 
 if __name__ == "__main__":
     init_db()

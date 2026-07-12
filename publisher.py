@@ -29,7 +29,7 @@ def publish() -> dict:
     if remote.returncode != 0:
         run("gh", "repo", "create", f"{OWNER}/{REPO}", "--public", "--source", str(ROOT), "--remote", "origin", "--push")
     else:
-        run("git", "add", "docs/index.html", "docs/intake.html", ".github/workflows/pages.yml", "config/venture.json")
+        run("git", "add", "docs/index.html", "docs/intake.html", "docs/resources/bio-clarity-checklist.html", ".github/workflows/pages.yml", "config/venture.json")
         run("git", "commit", "-m", "Publish approved static landing page", check=False)
         run("git", "push", "origin", "main")
     run("gh", "api", "--method", "POST", f"repos/{OWNER}/{REPO}/pages", "-f", "build_type=workflow", check=False)
@@ -38,7 +38,7 @@ def publish() -> dict:
     config["offer"]["public_url"] = PUBLIC_URL
     config["offer"]["intake_url"] = PUBLIC_URL + "intake.html"
     config_path.write_text(json.dumps(config, indent=2) + "\n")
-    publication_id = db.record_publication("github-pages", PUBLIC_URL, "landing-page/index.html + intake.html", "AUTO_APPROVED", "medium", rollback_ref=f"git:{REPO}:main")
+    publication_id = db.record_publication("github-pages", PUBLIC_URL, "landing-page/index.html + intake.html + resources/bio-clarity-checklist.html", "AUTO_APPROVED", "medium", rollback_ref=f"git:{REPO}:main")
     db.update_product_publication(PUBLIC_URL)
     db.add_event("PUBLICATION_COMPLETED", "publishing", "publication", publication_id, "ok", "medium", {"channel": "github-pages", "url": PUBLIC_URL, "allowlisted": True, "timestamped": True})
     db.record_distribution_metric("github-pages", "public-landing-page", notes="Publication is measurable; visitor counts remain unknown until analytics evidence exists")

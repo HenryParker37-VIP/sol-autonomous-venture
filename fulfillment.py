@@ -47,6 +47,7 @@ def fulfill_order(order_id: str, actor: str = "delivery") -> dict:
     with db.connect() as c:
         c.execute("UPDATE orders SET delivery_status='COMPLETED',order_status='COMPLETED',delivery_path=?,delivery_token=?,qa_evidence_json=?,purchased_version=?,updated_at=? WHERE id=?", (str(folder.relative_to(ROOT)),token,json.dumps(qa,sort_keys=True),product["version"],db.now(),order_id))
         db.log_event(c, "DELIVERY_COMPLETED", actor, "order", order_id, "COMPLETED", "medium", {"delivery_path": str(folder.relative_to(ROOT)), "secure_token": True, "qa": qa, "customer_email_recorded": bool(order["customer_email"])})
+        db.log_event(c, "FEEDBACK_REQUESTED", actor, "order", order_id, "REQUESTED", "low", {"customer_email_recorded": bool(order["customer_email"])})
     return {"order_id": order_id, "delivery_path": str(folder.relative_to(ROOT)), "delivery_url": f"/delivery/{token}", "qa": qa, "customer_email": order["customer_email"]}
 
 if __name__ == "__main__":
