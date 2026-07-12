@@ -6,7 +6,8 @@
     "price_usd": 5.0,
     "delivery_hours": 24,
     "paypal_url": "https://www.paypal.me/PARKERHENRY304/5USD",
-    "public_url": "https://henryparker37-vip.github.io/sol-autonomous-venture/"
+    "public_url": "https://henryparker37-vip.github.io/sol-autonomous-venture/",
+    "intake_url": "https://henryparker37-vip.github.io/sol-autonomous-venture/intake.html"
   },
   "limits": {
     "operating_cost_usd": 3.0,
