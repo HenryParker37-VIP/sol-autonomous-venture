@@ -7,7 +7,7 @@ Before enabling the live experiment, verify the public landing page, accurate $5
 ## Daily loop
 
 1. Review activity and replies.
-2. Prepare no more than three platform posts, twenty total personalized DMs, and thirty public comments across the sprint.
+2. Use the LinkedIn cadence in `config/acquisition.json`: 3-5 posts per week, Tuesday-Thursday 09:00-12:00 America/New_York preferred, at least 24 hours between posts, and a five-hour analytics review before scheduling the next post. Between posts, prioritize a small number of relevant public replies over repetition.
 3. Manually review every message and submission.
 4. Record inquiries and orders without exposing unnecessary personal data.
 5. Confirm payment manually before delivery.

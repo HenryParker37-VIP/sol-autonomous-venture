@@ -24,6 +24,7 @@
 - Prepared public opportunities: 30
 - Prepared outreach today: 5 messages; sent automatically: 0
 - LinkedIn reactions: 1 engagement signal; relevant segment match: no; follow-up: not appropriate
-- Post impressions: 0 recorded; profile views: 0 recorded; referral visits: 0; CTA clicks: 0
+- Post impressions: 27 recorded; profile views: 0 recorded; referral visits: 1; CTA clicks: 1
 - Latest LinkedIn analytics: 27 impressions; 1 reaction; 0 comments; 0 reposts; 0 profile viewers; 1 link engagement and 1 checklist visit.
+- Schedule: America/New_York; 3-5 LinkedIn posts/week; Tuesday-Thursday, 09:00-12:00 Eastern preferred; no more than one post per 24 hours; next eligible window `2026-07-14 09:00-12:00 ET`.
 - Experiment end: 2026-07-19T17:26:38Z (derived from the persisted seven-day experiment start)

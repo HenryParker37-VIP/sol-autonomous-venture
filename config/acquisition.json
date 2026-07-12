@@ -2,8 +2,22 @@
   "active_segment": "Freelancers with unclear service positioning",
   "experiment_started_at": "2026-07-12T17:26:38+00:00",
   "experiment_end_at": "2026-07-19T17:26:38+00:00",
+  "schedule": {
+    "primary_timezone": "America/New_York",
+    "posts_per_week_min": 3,
+    "posts_per_week_max": 5,
+    "minimum_hours_between_posts": 24,
+    "preferred_days": ["Tuesday", "Wednesday", "Thursday"],
+    "preferred_window_local": {"start": "09:00", "end": "12:00"},
+    "evidence_test_window_local": {"start": "13:00", "end": "15:00", "requires_evidence": true},
+    "analytics_wait_hours_after_post": 5,
+    "last_public_post_at": "2026-07-12T19:22:39+00:00",
+    "next_analytics_check_at": "2026-07-12T20:22:39+00:00",
+    "next_post_window_start": "2026-07-14T09:00:00-04:00",
+    "next_post_window_end": "2026-07-14T12:00:00-04:00"
+  },
   "daily_tasks": [
-    "Publish one useful, platform-appropriate clarity asset",
+    "Publish only within the U.S. Eastern posting cadence after the five-hour analytics review",
     "Review five public opportunities and prepare only personalized replies",
     "Send no more than ten manually approved messages",
     "Inspect referral sources, form starts, orders, and payment friction"
