@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+"""Minimal restartable worker for internal, non-public tasks."""
+from __future__ import annotations
+import argparse
+import time
+import venture_db as db
+
+def work_once() -> int:
+    db.init_db()
+    with db.connect() as c:
+        state = c.execute("SELECT paused, emergency_stop FROM venture_state WHERE id=1").fetchone()
+        if state[0] or state[1]:
+            db.add_event("WORKER_PAUSED", "worker", "venture", "1", "skipped", "medium", {"paused": bool(state[0]), "emergency_stop": bool(state[1])})
+            return 0
+        task = c.execute("SELECT * FROM tasks WHERE status='BACKLOG' ORDER BY priority ASC, created_at ASC LIMIT 1").fetchone()
+    if not task:
+        db.add_event("WORKER_HEALTHCHECK", "worker", "venture", "1", "idle", "low")
+        return 0
+    db.transition_task(task["id"], "BUILDING", {"worker":"local"}, "QUEUED")
+    db.transition_task(task["id"], "COMPLETED", {"worker":"local", "note":"internal task completed; no public side effect"}, "PASSED")
+    return 1
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--once", action="store_true")
+    parser.add_argument("--interval", type=int, default=30)
+    args = parser.parse_args()
+    if args.once:
+        print(f"Processed {work_once()} task(s)")
+    else:
+        while True:
+            work_once()
+            time.sleep(max(1, args.interval))

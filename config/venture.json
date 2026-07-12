@@ -1,0 +1,24 @@
+{
+  "venture_name": "SOL Autonomous Venture Engine",
+  "objective": "Generate at least USD 5 in verified external revenue within seven days",
+  "offer": {
+    "name": "$5 Bio Fix + Pinned Hook Pack",
+    "price_usd": 5.0,
+    "delivery_hours": 24,
+    "paypal_url": "https://www.paypal.me/PARKERHENRY304/5USD",
+    "public_url": "https://henryparker37-vip.github.io/24h-five-dollar-sprint/"
+  },
+  "limits": {
+    "operating_cost_usd": 3.0,
+    "max_public_posts_per_platform_daily": 3,
+    "max_personalized_dms_total": 20,
+    "max_public_comments_total": 30,
+    "max_followups_per_person": 1
+  },
+  "controls": {
+    "publishing_enabled": false,
+    "outreach_enabled": false,
+    "paused": false,
+    "emergency_stop": false
+  }
+}

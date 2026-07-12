@@ -1,0 +1,8 @@
+[project]
+name = "hp-os-sol-venture"
+version = "0.1.0"
+description = "Persistent local venture control center for a seven-day $5 experiment"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

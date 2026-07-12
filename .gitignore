@@ -1,0 +1,6 @@
+data/*.sqlite3
+data/*.sqlite3-*
+buyers/*
+__pycache__/
+*.pyc
+.playwright-cli/
