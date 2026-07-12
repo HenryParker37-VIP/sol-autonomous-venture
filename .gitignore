@@ -4,3 +4,7 @@ buyers/*
 __pycache__/
 *.pyc
 .playwright-cli/
+
+# Local Netlify folder
+.netlify
+node_modules/

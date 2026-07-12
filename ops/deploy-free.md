@@ -30,6 +30,6 @@ For a Pages site, keep a copy at `docs/index.html`, then enable Pages in reposit
 
 ## Persistent public intake option
 
-`intake.html` includes Netlify Forms fields. To make customer submissions persist publicly, deploy the static `docs/` directory to a Netlify site and enable form notifications in the Netlify dashboard. That requires the owner’s Netlify login; GitHub Pages serves the form but cannot persist its POST requests. Until this is configured, the verified persistent intake endpoint is the local route `http://127.0.0.1:7100/api/orders` and the dashboard labels the hosted backend `NOT VERIFIED`.
+The live deployment is `https://hp-os-bio-fix.netlify.app`. It serves `docs/` plus `netlify/functions/orders.mjs`. The function creates server-side order IDs and stores order JSON in the site-scoped Netlify Blobs store `hp-os-orders`. The public endpoint is `https://hp-os-bio-fix.netlify.app/api/orders`; the public intake is `https://hp-os-bio-fix.netlify.app/intake.html`. Owner lookup requires the private `HOSTED_OWNER_TOKEN`; use `scripts/sync-hosted-order.sh` to mirror a confirmed order into the local SQLite database. GitHub Pages remains the discovery/landing channel, while Netlify is the transaction backend.
 
 Replace local links in `marketing/final-ready-to-post.md` and `marketing/live-links.md` with the copied live URL. Review every draft manually before posting.

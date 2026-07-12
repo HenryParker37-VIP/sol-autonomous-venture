@@ -10,9 +10,9 @@
 - Verified live revenue: $0 until the owner confirms a genuine external payment
 - Operating cost: $0 recorded
 - Safety: GitHub Pages publishing and lawful distribution controls enabled; emergency stop off
-- Intake: public static form is live, local persistent API is executable, hosted persistent intake backend is NOT VERIFIED
+- Intake: hosted Netlify Function and site-scoped Blobs are verified; the public form creates server-side order IDs and returns PayPal instructions
 - Commercial funnel: referral source capture, awaiting-payment order state, feedback permission records, and dashboard funnel fields are implemented; no live buyer, visits, or revenue are claimed
 - Last verified test: `python3 milestone_engine.py` passed Milestones 1-15 with complete evidence and started Milestone 16
-- Next action: operate the live experiment without fabricating traffic, buyers, payments, or revenue; hosted intake remains an explicit readiness risk until a persistent free backend is configured
+- Next action: operate the live experiment without fabricating traffic, buyers, payments, or revenue; owner confirmation is still required for genuine PayPal payment
 
 This file is an evidence snapshot and should be refreshed after real implementation or live actions.

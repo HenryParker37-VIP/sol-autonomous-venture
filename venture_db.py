@@ -276,9 +276,9 @@ def transition_task(task_id: str, status: str, result: dict | None = None, verif
         c.execute("UPDATE tasks SET status=?,result_json=?,verification_status=?,updated_at=? WHERE id=?", (status,json.dumps(result or {}),verification,now(),task_id))
         log_event(c, "TASK_TRANSITION", task["assigned_agent"], "task", task_id, status, "medium" if status in {"PUBLISHED","PAID"} else "low", {"verification": verification})
 
-def create_order(product_id: str, customer_id: str, amount: float, profile_url: str = "", buyer_contact: str = "", is_sandbox: bool = False, customer_email: str = "", target_audience: str = "", preferred_tone: str = "", additional_context: str = "", consent_scope: str = "", purchased_version: str = "", referral_source: str = "direct") -> str:
+def create_order(product_id: str, customer_id: str, amount: float, profile_url: str = "", buyer_contact: str = "", is_sandbox: bool = False, customer_email: str = "", target_audience: str = "", preferred_tone: str = "", additional_context: str = "", consent_scope: str = "", purchased_version: str = "", referral_source: str = "direct", order_id: str = "") -> str:
     if amount <= 0: raise ValueError("amount must be positive")
-    oid = "ord_" + uuid.uuid4().hex[:12]
+    oid = order_id or "ord_" + uuid.uuid4().hex[:12]
     with connect() as c:
         if not consent_scope: raise ValueError("consent and scope acknowledgement is required")
         c.execute("INSERT INTO orders(id,anonymous_customer_id,product_id,quoted_amount_usd,payment_status,order_status,profile_url,buyer_contact,is_sandbox,customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,referral_source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (oid,customer_id,product_id,amount,"UNVERIFIED","AWAITING_PAYMENT",profile_url,buyer_contact,int(is_sandbox),customer_email,target_audience,preferred_tone,additional_context,consent_scope,purchased_version,referral_source or "direct",now(),now()))
