@@ -13,6 +13,7 @@ OWNER = "HenryParker37-VIP"
 REPO = "sol-autonomous-venture"
 REMOTE = f"https://github.com/{OWNER}/{REPO}.git"
 PUBLIC_URL = f"https://{OWNER.lower()}.github.io/{REPO}/"
+HOSTED_INTAKE_URL = "https://hp-os-bio-fix.netlify.app/intake.html"
 
 def run(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(args, cwd=ROOT, text=True, capture_output=True, check=check)
@@ -36,13 +37,15 @@ def publish() -> dict:
     config_path = ROOT / "config" / "venture.json"
     config = json.loads(config_path.read_text())
     config["offer"]["public_url"] = PUBLIC_URL
-    config["offer"]["intake_url"] = PUBLIC_URL + "intake.html"
+    config["offer"]["intake_url"] = HOSTED_INTAKE_URL
+    config["offer"]["intake_api_url"] = "https://hp-os-bio-fix.netlify.app/api/orders"
+    config["offer"]["hosted_intake_backend_verified"] = True
     config_path.write_text(json.dumps(config, indent=2) + "\n")
     publication_id = db.record_publication("github-pages", PUBLIC_URL, "landing-page/index.html + intake.html + resources/bio-clarity-checklist.html", "AUTO_APPROVED", "medium", rollback_ref=f"git:{REPO}:main")
     db.update_product_publication(PUBLIC_URL)
     db.add_event("PUBLICATION_COMPLETED", "publishing", "publication", publication_id, "ok", "medium", {"channel": "github-pages", "url": PUBLIC_URL, "allowlisted": True, "timestamped": True})
     db.record_distribution_metric("github-pages", "public-landing-page", notes="Publication is measurable; visitor counts remain unknown until analytics evidence exists")
-    return {"channel": "github-pages", "url": PUBLIC_URL, "intake_url": PUBLIC_URL + "intake.html", "repo": f"{OWNER}/{REPO}", "publication_id": publication_id}
+    return {"channel": "github-pages", "url": PUBLIC_URL, "intake_url": HOSTED_INTAKE_URL, "repo": f"{OWNER}/{REPO}", "publication_id": publication_id}
 
 if __name__ == "__main__":
     print(json.dumps(publish(), indent=2))
