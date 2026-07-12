@@ -14,7 +14,7 @@ Before enabling the live experiment, verify the public landing page, accurate $5
 6. Deliver within 24 hours and record one revision if used.
 7. Review evidence before changing the offer.
 
-The absence of a buyer is a market state, not a blocked worker state. The Venture Director remains `WAITING_ON_MARKET` and continues availability checks, distribution, funnel review, and pivot evaluation.
+The absence of a buyer is a market state, not a blocked worker state. The Venture Director remains `ACQUISITION_ACTIVE` and continues availability checks, distribution, funnel review, and pivot evaluation.
 
 ## Stop and pivot rules
 

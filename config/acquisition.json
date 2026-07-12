@@ -22,7 +22,22 @@
     "Send no more than ten manually approved messages",
     "Inspect referral sources, form starts, orders, and payment friction"
   ],
-  "limits": {"messages_per_day": 10, "followups_per_person": 1, "followup_delay_hours": 48},
+  "content_rotation": [
+    "educational_checklist",
+    "before_after_rewrite",
+    "common_mistake",
+    "one_sentence_exercise",
+    "mini_case_demonstration",
+    "founder_lesson",
+    "profile_teardown",
+    "question_based_discussion",
+    "free_practical_template"
+  ],
+  "next_content_type": "before_after_rewrite",
+  "limits": {"messages_per_day": 10, "public_comments_per_day": 5, "followups_per_person": 1, "followup_delay_hours": 48, "unsolicited_dms_per_day": 0, "connection_requests_per_day": 0, "mass_likes_per_day": 0},
+  "lead_classification": ["IRRELEVANT", "ENGAGEMENT_ONLY", "RELEVANT_PROFILE", "WARM_PROSPECT", "INTENT_SIGNAL", "ORDER_CREATED", "AWAITING_PAYMENT", "PAID", "FULFILLED"],
+  "owner_only_blockers": ["LOGIN", "MFA", "CAPTCHA", "IDENTITY_VERIFICATION", "SUSPICIOUS_LOGIN", "TEMPORARY_RESTRICTION", "POSTING_RESTRICTION", "RATE_LIMIT", "PAYMENT_CONFIRMATION"],
+  "weekly_decision_options": ["CONTINUE", "NARROW_SEGMENT", "CHANGE_MESSAGE", "CHANGE_CHANNEL", "CHANGE_PRICE", "CHANGE_OFFER", "TERMINATE"],
   "pivot_rules": {"impressions_without_visits": 100, "visits_without_form_start": 20, "form_starts_without_orders": 5, "orders_without_payment": 3},
   "best_channel": "GitHub Pages content library (verified public URLs; traffic still unmeasured)",
   "current_bottleneck": "No observed live buyer signal yet; manual discovery and approval are active"

@@ -2,8 +2,23 @@
 """Minimal restartable worker for internal, non-public tasks."""
 from __future__ import annotations
 import argparse
+import json
 import time
+from datetime import datetime, timezone
 import venture_db as db
+
+
+def is_due(task) -> bool:
+    try:
+        scheduled = json.loads(task["input_json"]).get("scheduled_for")
+        if not scheduled:
+            return True
+        when = datetime.fromisoformat(scheduled.replace("Z", "+00:00"))
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=timezone.utc)
+        return when <= datetime.now(timezone.utc)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
 
 def work_once(task_id: str | None = None) -> int:
     db.init_db()
@@ -15,13 +30,16 @@ def work_once(task_id: str | None = None) -> int:
         if task_id:
             task = c.execute("SELECT * FROM tasks WHERE id=? AND status='BACKLOG'", (task_id,)).fetchone()
         else:
-            task = c.execute("SELECT * FROM tasks WHERE status='BACKLOG' ORDER BY priority ASC, created_at ASC LIMIT 1").fetchone()
+            candidates = c.execute("SELECT * FROM tasks WHERE status='BACKLOG' ORDER BY priority ASC, created_at ASC").fetchall()
+            task = next((candidate for candidate in candidates if is_due(candidate)), None)
+        if task is not None and not is_due(task):
+            task = None
     if not task:
         db.add_event("WORKER_HEALTHCHECK", "worker", "venture", "1", "idle", "low")
         with db.connect() as c:
             state = c.execute("SELECT current_milestone FROM venture_state WHERE id=1").fetchone()
         if state and state[0] == "LIVE_EXPERIMENT":
-            db.set_agent_status("venture-director", "WAITING_ON_MARKET", "LIVE_EXPERIMENT", "Monitor availability, schedule lawful distribution, analyze funnel, evaluate pivots", "", last_result="HEALTHCHECK_OK")
+            db.set_agent_status("venture-director", "ACQUISITION_ACTIVE", "SCHEDULED_ACQUISITION", "Wait for the next due task; monitor analytics and lawful public discovery", "", last_result="HEALTHCHECK_OK")
         return 0
     db.transition_task(task["id"], "BUILDING", {"worker":"local"}, "QUEUED")
     db.transition_task(task["id"], "COMPLETED", {"worker":"local", "note":"internal task completed; no public side effect"}, "PASSED")

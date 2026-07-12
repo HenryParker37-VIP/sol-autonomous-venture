@@ -17,6 +17,7 @@
 - Relevant form starts and live orders: no observed evidence yet; remain 0 rather than estimated. LinkedIn analytics recorded 27 impressions, 1 reaction, 0 comments, 0 reposts, 0 profile viewers, 1 link engagement, and 1 checklist visit.
 - Separate engagement and funnel metrics: reactions 1; post impressions 27; profile views 0; referral visits 1; CTA clicks 1; form starts 0; orders 0; verified payments 0; sales 0.
 - Posting schedule: `America/New_York`; 3-5 LinkedIn posts per week; Tuesday-Thursday, 09:00-12:00 ET preferred; one post maximum per 24 hours; next eligible window `2026-07-14 09:00-12:00 ET`. Analytics review occurs approximately five hours after each post.
+- HP OS scheduler seeded six idempotent tasks at `2026-07-12T20:17:21Z`: +5h analytics, +24h analytics, up to five relevant public comments, U.S. business-day review, next rotated post window, and seven-day decision. Future tasks remain `BACKLOG` until their persisted `scheduled_for` time; an early worker smoke test processed `0` tasks.
 - Current bottleneck: discovery reach, not landing-page presentation.
 - Next action: owner manually reviews five queued public opportunities; then log only approved sends/replies in `ops/tracking.md`.
 - Day 1 status: COMPLETE for acquisition gate: one relevant public reply was published and recorded. No DMs were sent; the seven-day experiment continues automatically into Day 2.
